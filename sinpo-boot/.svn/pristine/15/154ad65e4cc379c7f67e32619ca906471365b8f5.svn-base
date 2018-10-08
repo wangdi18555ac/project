@@ -1,0 +1,431 @@
+package com.sinpo.common.excel;
+
+import com.alibaba.fastjson.JSON;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.sinpo.common.excel.annotation.ExcelExportDoc;
+import com.sinpo.common.excel.annotation.ExcelExportModel;
+import com.sinpo.common.excel.annotation.ExcelImportModel;
+import com.sinpo.common.excel.exception.ExcelException;
+import com.sinpo.common.utils.StringUtils;
+import org.apache.poi.hssf.util.HSSFColor;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.util.CellRangeAddress;
+
+import javax.servlet.http.HttpServletResponse;
+import java.io.*;
+import java.lang.reflect.Field;
+import java.util.*;
+
+/**
+ * Excel执行器
+ *
+ * @author  WangDi
+ * @version 1.0
+ * @date    2018/7/18
+ */
+public class ExcelExecutor {
+
+    private static final String ARRAY_TYPE_STRING = "class [[Ljava.lang.String;";
+    /*
+     * 默认header行的坐标
+     */
+    private static int headerLineNum = 1;
+
+    /**
+     * 导出Excel
+     *
+     * @param model     模型接口类
+     * @param excelData 数据集合
+     * @param response  响应对象
+     * @throws Exception
+     */
+    public static void export(Class<?> model, List<Map<String, Object>> excelData, HttpServletResponse response) throws Exception {
+
+        //自定义参数
+        Map<String, Object> custom = new Hashtable<>();
+
+        //判断参数是否为接口
+        if (!model.isInterface())
+            throw new ExcelException("the method 'export' need the type of first param for interface");
+
+        //获取ExcelModel注解
+        ExcelExportModel excelModel = model.getAnnotation(ExcelExportModel.class);
+
+        //判断注解是否存在
+        if (excelModel == null)
+            throw new ExcelException("can not find annotation @ExcelExportModel on the interface");
+
+        //获取列头部信息并转换成集合
+        List<String> headerList = Arrays.asList(excelModel.headers());
+
+        //获取标题信息
+        String title = excelModel.title();
+
+        //获取文件名信息
+        String fileName = excelModel.fileName();
+
+        //获取行高
+        float[] rowHeight = excelModel.rowHeight();
+
+        //判断长度
+        if (rowHeight.length == 3)
+            custom.put("rowHeight", rowHeight);
+
+        //获取列宽
+        int[] columnWidth = excelModel.columnWidth();
+
+        //判断长度
+        if (columnWidth.length != 0 && columnWidth.length == headerList.size())
+            custom.put("columnWidth", columnWidth);
+
+        //创建Excel导出对象
+        ExportExcel ee = new ExportExcel(title, headerList, transformData(excelModel, excelData), custom);
+
+        //获取ExcelDoc注解
+        ExcelExportDoc excelDoc = model.getAnnotation(ExcelExportDoc.class);
+
+        //判断是否启用以及注解非空
+        if (excelDoc != null && excelDoc.enableDoc()) {
+            //获取说明信息
+            String[][] di = getDocInstructionArray(model);
+            //插入说明Sheet
+            ee.addInstruction(excelDoc.title(), excelDoc.headers(), di);
+        }
+
+        //输出
+        ee.write(response, fileName + ExcelSuffix.XLSX.getType());
+
+        //清理临时文件
+        ee.dispose();
+
+    }
+
+    /**
+     * Excel读取
+     *
+     * @param model  模型接口类
+     * @param is     字节流
+     * @param suffix 后缀
+     * @return 集合
+     * @throws Exception
+     */
+    public static Map<String, Object> read(Class<?> model, InputStream is, int sheetIndex, ExcelSuffix suffix) throws Exception {
+        //创建空集合
+        List<Map<String, Object>> dataList = Lists.newArrayList();
+
+        //返回map
+        Map<String, Object> result = Maps.newHashMap();
+
+        //错误map
+        Map<String, Object> error = Maps.newHashMap();
+
+        //行数据map
+        Map<String, Object> dataMap = null;
+
+        //判断参数是否为接口
+        if (!model.isInterface())
+            throw new ExcelException("the method 'read' need the type of first param for interface");
+
+        //获取ExcelModel注解
+        ExcelImportModel excelModel = model.getAnnotation(ExcelImportModel.class);
+
+        //判断注解是否存在
+        if (excelModel == null)
+            throw new ExcelException("can not find annotation @ExcelImportModel on the interface");
+
+        //获取映射关系
+        String[] mapping = excelModel.attributeMapping();
+
+        //获取映射的实体类
+        Class<?> type = excelModel.type();
+
+        //创建Excel导入对象
+        ImportExcel ie = new ImportExcel(suffix.getType(), is, headerLineNum, sheetIndex);
+
+        //校验模板
+        Boolean ckr = checkTemplate(ie, excelModel);
+
+        result.put(ExcelKey.EXCEL_IMPORT_TEMPLATE_ERROR, ckr);
+
+        //最后一行
+        int lastRow = ie.getLastDataRowNum();
+
+        //数据行
+        int dataRow = ie.getDataRowNum();
+
+        //每行最后一格
+        int lastCell = ie.getLastCellNum();
+
+        //从文档中获取校验规则
+        Map<Integer, Boolean> rules = getRulesByDoc(model);
+
+        //读取表格数据
+        for (int i = dataRow; i < lastRow; i++) {
+            Row row = ie.getRow(i);
+            dataMap = Maps.newHashMap();
+            for (int j = 0; j < lastCell; j++) {
+                Object val = ie.getCellValue(row, j);
+                if (rules.containsKey(j)
+                        && rules.get(j)
+                        && (StringUtils.isEmpty(String.valueOf(val))
+                        || ExcelKey.EXCEL_IMPORT_REQUIRED_CUE.equals(String.valueOf(val)))) {
+                    error.put(i + "," + j, ExcelKey.EXCEL_IMPORT_REQUIRED_CUE);
+                }
+                if (j < mapping.length) {
+                    dataMap.put(mapping[j], val);
+                }
+            }
+            dataList.add(dataMap);
+        }
+
+        //判断是否返回自定义类型数据
+        if (type == ExcelImportModel.class) {
+            result.put(ExcelKey.EXCEL_IMPORT_DATA, dataList);
+        } else {
+            result.put(ExcelKey.EXCEL_IMPORT_DATA, transformData(dataList, type));
+        }
+        //错误回显信息
+        result.put(ExcelKey.EXCEL_IMPORT_ERROR, error);
+        //工作簿对象
+        result.put(ExcelKey.EXCEL_IMPORT_WORKBOOK, ie.getWb());
+
+        return result;
+    }
+
+    /**
+     * 错误信息回显
+     *
+     * @param os
+     * @param importResult
+     * @param suffix
+     * @throws IOException
+     */
+    public static void sendExcelErrorResponse(OutputStream os, Map<String, Object> importResult, ExcelSuffix suffix) throws IOException {
+        Workbook wb = ImportExcel.getWorkBook(importResult);
+        CellStyle style = getErrorCellStyle(wb, true);
+        List<String> errorTips = null;
+        for (Map.Entry<String, Object> obj : ImportExcel.getErrorMap(importResult).entrySet()) {
+            String key = obj.getKey();
+            //自定义错误信息
+            if (ExcelKey.EXCEL_IMPORT_ERROR_DESCRIPTION.equals(key)) {
+                errorTips = (List<String>) obj.getValue();
+                continue;
+            }
+            String[] coordinate = key.split(",");
+            int x = Integer.parseInt(coordinate[0]);
+            int y = Integer.parseInt(coordinate[1]);
+            Sheet st = wb.getSheetAt(0);
+            Row row = st.getRow(x);
+            Cell cell = row.getCell(y);
+            if (cell != null) {
+                cell.setCellStyle(style);
+                cell.setCellValue((String) obj.getValue());
+            }
+        }
+        //增加一个错误信息显示sheet
+        if (errorTips != null) {
+            Sheet errorSheet = wb.createSheet(ExcelKey.EXCEL_IMPORT_ERROR_SHEET_TITLE);
+            // 添加title
+            Row titleRow = errorSheet.createRow(0);
+            // 设置行高
+            titleRow.setHeightInPoints(30);
+            Cell titleCell = titleRow.createCell(0);
+            CellStyle errorStyle = getErrorSheetTitleStyle(wb);
+            titleCell.setCellStyle(errorStyle);
+            titleCell.setCellValue(ExcelKey.EXCEL_IMPORT_ERROR_SHEET_TITLE);
+            errorSheet.addMergedRegion(new CellRangeAddress(0, 3, 0, 5));
+            CellStyle dataStyle = getErrorCellStyle(wb, false);
+            for (int i = 0; i < errorTips.size(); i++) {
+                Row row = errorSheet.createRow(i + 4);
+                row.setHeightInPoints(30);
+                Cell cell = row.createCell(0);
+                cell.setCellStyle(dataStyle);
+                cell.setCellValue(errorTips.get(i));
+                errorSheet.addMergedRegion(new CellRangeAddress(i + 4, i + 4, 0, 5));
+            }
+        }
+        wb.write(os);
+    }
+
+    /**
+     * 获取错误单元格样式
+     *
+     * @param wb
+     * @return
+     */
+    private static CellStyle getErrorCellStyle(Workbook wb, boolean border) {
+        CellStyle style = wb.createCellStyle();
+        if (border) {
+            style.setBorderBottom(CellStyle.BORDER_MEDIUM); //下边框
+            style.setBorderLeft(CellStyle.BORDER_MEDIUM);//左边框
+            style.setBorderTop(CellStyle.BORDER_MEDIUM);//上边框
+            style.setBorderRight(CellStyle.BORDER_MEDIUM);//右边框
+
+        }
+        style.setBottomBorderColor(HSSFColor.RED.index);
+        style.setLeftBorderColor(HSSFColor.RED.index);
+        style.setRightBorderColor(HSSFColor.RED.index);
+        style.setTopBorderColor(HSSFColor.RED.index);
+        style.setVerticalAlignment(CellStyle.VERTICAL_CENTER);
+        style.setAlignment(CellStyle.ALIGN_CENTER);
+        Font dataFont = wb.createFont();
+        dataFont.setFontName("Arial");
+        dataFont.setFontHeightInPoints((short) 10);
+        dataFont.setColor(HSSFColor.RED.index);
+        style.setFont(dataFont);
+        return style;
+    }
+
+    /**
+     * 错误信息显示sheet标题样式
+     *
+     * @param wb
+     * @return
+     */
+    private static CellStyle getErrorSheetTitleStyle(Workbook wb) {
+        CellStyle errorStyle = wb.createCellStyle();
+        errorStyle.setAlignment(CellStyle.ALIGN_CENTER);
+        errorStyle.setVerticalAlignment(CellStyle.VERTICAL_CENTER);
+        Font titleFont = wb.createFont();
+        titleFont.setFontName("Arial");
+        titleFont.setFontHeightInPoints((short) 16);
+        titleFont.setBoldweight(Font.BOLDWEIGHT_BOLD);
+        errorStyle.setFont(titleFont);
+        return errorStyle;
+    }
+
+    /**
+     * 转化成指定类型数据
+     *
+     * @param dataList
+     * @param type
+     * @return
+     */
+    private static List transformData(List<Map<String, Object>> dataList, Class<?> type) {
+        List result = Lists.newArrayList();
+        Map<String, Object> item = null;
+        for (int i = 0; i < dataList.size(); i++) {
+            item = dataList.get(i);
+            String json = JSON.toJSONString(item);
+            Object obj = JSON.parseObject(json, type);
+            result.add(obj);
+        }
+        return result;
+    }
+
+    /**
+     * 转化成指定类型数据
+     *
+     * @param dataList
+     * @return
+     */
+    public static List<Map<String, Object>> transformDataMapToModel(List<?> dataList) {
+        List result = Lists.newArrayList();
+        for (int i = 0; i < dataList.size(); i++) {
+            String json = JSON.toJSONString(dataList.get(i));
+            Map obj = JSON.parseObject(json, HashMap.class);
+            result.add(obj);
+        }
+        return result;
+    }
+
+    /**
+     * 转化成指定类型数据
+     *
+     * @param model
+     * @param excelData
+     * @return
+     */
+    private static List<List<Object>> transformData(ExcelExportModel model, List<Map<String, Object>> excelData) {
+        List<List<Object>> allData = Lists.newArrayList();
+        List<Object> rowData = null;
+        Map map = null;
+        String[] mapping = model.attributeMapping();
+        for (int i = 0; i < excelData.size(); i++) {
+            map = excelData.get(i);
+            rowData = Lists.newArrayList();
+            for (int j = 0; j < mapping.length; j++) {
+                if (map.containsKey(mapping[j])) {
+                    rowData.add(map.get(mapping[j]));
+                } else {
+                    rowData.add("");
+                }
+            }
+            allData.add(rowData);
+        }
+        return allData;
+    }
+
+    /**
+     * 获取说明信息
+     *
+     * @param model 模型接口类
+     * @return String[][]
+     */
+    private static String[][] getDocInstructionArray(Class<?> model) throws IllegalAccessException {
+        Field[] fields = model.getDeclaredFields();
+        if (fields.length > 0) {
+            for (Field f : fields) {
+                if (ARRAY_TYPE_STRING.equals(f.getType().toString())) {
+                    return (String[][]) f.get(null);
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 根据说明文档获取校验规则
+     *
+     * @param model
+     * @return
+     * @throws IllegalAccessException
+     */
+    private static Map<Integer, Boolean> getRulesByDoc(Class<?> model) throws IllegalAccessException {
+        Map<Integer, Boolean> rulesByDoc = Maps.newHashMap();
+        String[][] docs = getDocInstructionArray(model);
+        if (docs != null) {
+            ExcelImportModel excelModel = model.getAnnotation(ExcelImportModel.class);
+            if (excelModel != null) {
+                String[] headers = excelModel.headers();
+                for (String[] row : docs) {
+                    if (row.length >= 3) {
+                        for (int i = 0; i < headers.length; i++) {
+                            if (headers[i].contains(ExportExcel.COMMENT_SEPARATOR)) {
+                                headers[i] = headers[i].split(ExportExcel.COMMENT_SEPARATOR)[0];
+                            }
+                            if (headers[i].trim().equals(row[0].trim())) {
+                                rulesByDoc.put(i, row[2].equals(ExcelKey.EXCEL_IMPORT_REQUIRED_WORD) ? true : false);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return rulesByDoc;
+    }
+
+    /**
+     * 校验模板
+     *
+     * @param ie
+     * @param annotation
+     * @return
+     */
+    private static Boolean checkTemplate(ImportExcel ie, ExcelImportModel annotation) {
+        Row row = ie.getRow(headerLineNum);
+        String title = (String) ie.getCellValue(ie.getRow(0), 0);
+        String[] headers = annotation.headers();
+        for (int i = 0; i < headers.length; i++) {
+            String val = (String) ie.getCellValue(row, i);
+            if (headers[i].contains(ExportExcel.COMMENT_SEPARATOR)) {
+                headers[i] = headers[i].split(ExportExcel.COMMENT_SEPARATOR)[0];
+            }
+            if (!headers[i].equals(val)) {
+                return true;
+            }
+        }
+        return false;
+    }
+}

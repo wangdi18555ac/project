@@ -1,0 +1,32 @@
+package com.sinpo.common.excel;
+
+/**
+ * Excel操作键
+ *
+ * @author  WangDi
+ * @version 1.0
+ * @date    2018/7/23
+ */
+public class ExcelKey {
+
+    /**
+     * 以下键会影响Excel操作功能，修改请谨慎
+     */
+
+
+    public static final String EXCEL_IMPORT_DATA = "data";
+
+    public static final String EXCEL_IMPORT_WORKBOOK = "wb";
+
+    public static final String EXCEL_IMPORT_ERROR = "error";
+
+    public static final String EXCEL_IMPORT_ERROR_DESCRIPTION = "errorDescription";
+
+    public static final String EXCEL_IMPORT_ERROR_SHEET_TITLE = "导入错误信息一览";
+
+    public static final String EXCEL_IMPORT_REQUIRED_CUE = "该项为必填项";
+
+    public static final String EXCEL_IMPORT_REQUIRED_WORD = "是";
+
+    public static final String EXCEL_IMPORT_TEMPLATE_ERROR = "templateError";
+}

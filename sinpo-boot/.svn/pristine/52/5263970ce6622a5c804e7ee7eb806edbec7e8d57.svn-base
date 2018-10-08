@@ -1,0 +1,88 @@
+package com.sinpo.project.work.clock.service;
+
+import java.util.List;
+import java.util.UUID;
+
+import com.sinpo.common.utils.security.ShiroUtils;
+import com.sinpo.project.work.clock.domain.ClockRecord;
+import com.sinpo.project.work.clock.mapper.ClockRecordMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import com.sinpo.common.support.Convert;
+
+/**
+ * 打卡记录 服务层实现
+ * 
+ * @author admin
+ * @date 2018-07-26
+ */
+@Service
+public class ClockRecordServiceImpl implements IClockRecordService 
+{
+	@Autowired
+	private ClockRecordMapper clockRecordMapper;
+
+	/**
+     * 查询打卡记录信息
+     * 
+     * @param crId 打卡记录ID
+     * @return 打卡记录信息
+     */
+    @Override
+	public ClockRecord selectClockRecordById(String crId)
+	{
+	    return clockRecordMapper.selectClockRecordById(crId);
+	}
+	
+	/**
+     * 查询打卡记录列表
+     * 
+     * @param clockRecord 打卡记录信息
+     * @return 打卡记录集合
+     */
+	@Override
+	public List<ClockRecord> selectClockRecordList(ClockRecord clockRecord)
+	{
+	    return clockRecordMapper.selectClockRecordList(clockRecord);
+	}
+	
+    /**
+     * 新增打卡记录
+     * 
+     * @param clockRecord 打卡记录信息
+     * @return 结果
+     */
+	@Override
+	public int insertClockRecord(ClockRecord clockRecord)
+	{
+		clockRecord.setCrId(UUID.randomUUID().toString());
+		clockRecord.setCreateBy(ShiroUtils.getLoginName());
+		clockRecord.setUpdateBy(ShiroUtils.getLoginName());
+	    return clockRecordMapper.insertClockRecord(clockRecord);
+	}
+	
+	/**
+     * 修改打卡记录
+     * 
+     * @param clockRecord 打卡记录信息
+     * @return 结果
+     */
+	@Override
+	public int updateClockRecord(ClockRecord clockRecord)
+	{
+	    return clockRecordMapper.updateClockRecord(clockRecord);
+	}
+
+	/**
+     * 删除打卡记录对象
+     * 
+     * @param ids 需要删除的数据ID
+     * @return 结果
+     */
+	@Override
+	public int deleteClockRecordByIds(String ids)
+	{
+		return clockRecordMapper.deleteClockRecordByIds(Convert.toStrArray(ids));
+	}
+	
+}

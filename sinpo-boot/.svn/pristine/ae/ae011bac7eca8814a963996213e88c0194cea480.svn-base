@@ -1,0 +1,28 @@
+package com.sinpo.framework.rabbitmq;
+
+import com.sinpo.project.system.notice.service.INoticeService;
+import org.springframework.amqp.rabbit.annotation.RabbitHandler;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import java.util.Map;
+
+/**
+ * @author WangDi
+ * @version 1.0
+ * @date 2018/7/30 0030
+ */
+//@Component
+public class RabbitMQListener {
+
+//    @Autowired
+    INoticeService iNoticeService;
+
+    //监听
+//    @RabbitListener(queues = RabbitMQQueues.ACTIVITY)
+//    @RabbitHandler
+    public void process(Map data) {
+
+    }
+}

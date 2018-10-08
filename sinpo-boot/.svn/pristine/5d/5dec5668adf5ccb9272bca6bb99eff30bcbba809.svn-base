@@ -1,0 +1,181 @@
+<!DOCTYPE HTML>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<meta charset="utf-8">
+<head th:include="include :: header">
+    <div th:include="include :: calendarCss"></div>
+    <style>
+        .btn-block-wd{
+            margin-top: 20px;
+            padding-bottom: 20px;
+        }
+        .btn-block-wd>button{
+            margin-right: 15px;
+        }
+    </style>
+</head>
+<body class="gray-bg">
+<div class="container-div">
+    <div class="alert alert-success" role="alert">
+        打卡成功！
+    </div>
+    <div class="btn-block-wd">
+        <button type="button" class="btn btn-success">上班打卡</button>
+        <button type="button" class="btn btn-secondary" name="off">下班打卡</button>
+    </div>
+    <div id="calendar"></div>
+</div>
+<!-- Modal -->
+<div class="modal fade" id="dialogModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle"
+     aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalCenterTitle">确认提示</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                要下班打卡吗？
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="done">确定</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div th:include="include :: footer"></div>
+<div th:include="include :: calendarJs"></div>
+</body>
+<script>
+    $(".alert").hide();
+    $("button").on('click',function(){
+        var $this = $(this);
+        if ($(this).hasClass("btn-success")) {
+            var name = $this.attr("name");
+            if (name === 'off') {
+                $('#dialogModal').modal('show');
+                $('#done').click(function () {
+                    $('#dialogModal').modal('hide');
+                    $(".alert").show();
+                    setTimeout(function () {
+                        $(".alert").hide();
+                    }, 1000);
+                    $this.removeClass("btn-success");
+                    $this.addClass("btn-secondary");
+                    $this.siblings().removeClass("btn-secondary");
+                    $this.siblings().addClass("btn-success");
+                });
+            }else{
+                $(".alert").show();
+                setTimeout(function () {
+                    $(".alert").hide();
+                }, 1000);
+                $(this).removeClass("btn-success");
+                $(this).addClass("btn-secondary");
+                $(this).siblings().removeClass("btn-secondary");
+                $(this).siblings().addClass("btn-success");
+            }
+        }
+    });
+</script>
+<script>
+    $(function () {
+        /* initialize the external events
+         -----------------------------------------------------------------*/
+        $('#external-events div.external-event').each(function () {
+            // store data so the calendar knows to render an event upon drop
+            $(this).data('event', {
+                title: $.trim($(this).text()), // use the element's text as the event title
+                stick: true // maintain when user navigates (see docs on the renderEvent method)
+            });
+            // make the event draggable using jQuery UI
+            $(this).draggable({
+                zIndex: 1111999,
+                revert: true,      // will cause the event to go back to its
+                revertDuration: 0  //  original position after the drag
+            });
+        });
+
+        /* initialize the calendar*/
+        var date = new Date();
+        var d = date.getDate();
+        var m = date.getMonth();
+        var y = date.getFullYear();
+
+        $('#calendar').fullCalendar({
+            header: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'month,agendaWeek,agendaDay'
+            },
+            editable: false,
+            droppable: false, // this allows things to be dropped onto the calendar
+            drop: function () {
+                // is the "remove after drop" checkbox checked?
+                if ($('#drop-remove').is(':checked')) {
+                    // if so, remove the element from the "Draggable Events" list
+                    $(this).remove();
+                }
+            },
+            events: [
+                {
+                    title: 'All Day Event',
+                    start: new Date(y, m, 1),
+                    editable:true,
+                    allDay: true,
+                },
+                {
+                    title: 'Long Event',
+                    start: new Date(y, m, d - 5),
+                    end: new Date(y, m, d - 2),
+                },
+                {
+                    id: 999,
+                    title: 'Repeating Event',
+                    start: new Date(y, m, d - 3, 16, 0),
+                    allDay: false,
+                },
+                {
+                    title: 'Homer task',
+                    start: new Date(y, m, d + 5, 19, 0),
+                    end: new Date(y, m, d + 6, 22, 30),
+                    allDay: false,
+                    backgroundColor: "#62cb31",
+                    borderColor: "#62cb31"
+                },
+                {
+                    id: 999,
+                    title: 'Repeating Event',
+                    start: new Date(y, m, d + 4, 16, 0),
+                    allDay: false
+                },
+                {
+                    title: 'Meeting',
+                    start: new Date(y, m, d, 10, 30),
+                    allDay: false
+                },
+                {
+                    title: 'Lunch',
+                    start: new Date(y, m, d, 12, 0),
+                    end: new Date(y, m, d, 14, 0),
+                    allDay: false
+                },
+                {
+                    title: 'Birthday Party',
+                    start: new Date(y, m, d + 1, 19, 0),
+                    end: new Date(y, m, d + 1, 22, 30),
+                    allDay: false
+                },
+                {
+                    title: 'Click for Google',
+                    start: new Date(y, m, 28),
+                    end: new Date(y, m, 29),
+                    url: '/work/clockRecord'
+                }
+            ]
+        });
+    });
+</script>
+</html>

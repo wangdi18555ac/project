@@ -1,0 +1,431 @@
+package com.sinpo.common.excel;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
+import org.apache.poi.xssf.usermodel.XSSFClientAnchor;
+import org.apache.poi.xssf.usermodel.XSSFRichTextString;
+
+import javax.servlet.http.HttpServletResponse;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.*;
+
+/**
+ * 导出Excel文件
+ *
+ * @author WangDi
+ * @version 1.0
+ * @date 2018/7/18
+ */
+public class ExportExcel {
+
+
+    /**
+     * 工作薄对象
+     */
+    private SXSSFWorkbook wb;
+
+    /**
+     * 工作表对象
+     */
+    private Sheet[] sheet;
+
+    /**
+     * 样式列表
+     */
+    private Map<String, CellStyle> styles;
+
+    /**
+     * 当前行号
+     */
+    private int[] rownum;
+
+    /**
+     * 分隔符
+     */
+    public static final String COMMENT_SEPARATOR = "@@";
+
+    /**
+     * 自定义参数
+     */
+    private Map<String, Object> custom = new Hashtable<>();
+
+    /**
+     * 列默认宽度
+     */
+    private final int DEFAULT_WIDTH = 3000;
+
+    /**
+     * 行默认高度
+     */
+    private final int[] DEFAULT_ROW_HEIGHT = {50, 30, 20};
+
+    /**
+     * 构造函数
+     *
+     * @param title      表格标题，传“空值”，表示无标题
+     * @param headerList 表头列表
+     * @param excelData  数据集合
+     */
+    public ExportExcel(String title, List<String> headerList, List<List<Object>> excelData, Map<String, Object> custom) {
+        autoWireCustomParams(custom);
+        List<String> titleList = new ArrayList<String>();
+        titleList.add(title);
+        List<List<String>> headerLists = new ArrayList<List<String>>();
+        headerLists.add(headerList);
+        initialize(titleList, headerLists);
+        fillData(excelData);
+    }
+
+    /**
+     * 填充数据
+     *
+     * @param excelData
+     */
+    private void fillData(List<List<Object>> excelData) {
+        for (int i = 0; i < excelData.size(); i++) {
+            Row row = this.addRow(0);
+            row.setHeightInPoints((Float) custom.get("dataHeight"));
+            for (int j = 0; j < excelData.get(i).size(); j++) {
+                this.addCell(row, j, excelData.get(i).get(j));
+            }
+        }
+    }
+
+    /**
+     * 初始化函数
+     *
+     * @param title      表格标题，传“空值”，表示无标题
+     * @param headerList 表头列表
+     */
+    private void initialize(List<String> title, List<List<String>> headerList) {
+        this.wb = new SXSSFWorkbook(500);
+        this.sheet = new Sheet[title.size()];
+        rownum = new int[title.size()];
+        for (int i = 0; i < title.size(); i++) {
+            this.sheet[i] = wb.createSheet(title.get(i));
+            this.styles = createStyles(wb);
+            // 标题
+            if (StringUtils.isNotBlank(title.get(i))) {
+                Row titleRow = sheet[i].createRow(rownum[i]++);
+                titleRow.setHeightInPoints((Float) custom.get("titleHeight"));
+                Cell titleCell = titleRow.createCell(0);
+                titleCell.setCellStyle(styles.get("title"));
+                titleCell.setCellValue(title.get(i));
+                sheet[i].addMergedRegion(new CellRangeAddress(titleRow.getRowNum(), titleRow.getRowNum(), titleRow
+                        .getRowNum(), headerList.get(i).size() - 1));
+            }
+            // 头信息
+            if (headerList.get(i) == null) {
+                throw new RuntimeException("headerList not null!");
+            }
+            Row headerRow = sheet[i].createRow(rownum[i]++);
+            headerRow.setHeightInPoints((Float) custom.get("headerHeight"));
+            for (int y = 0; y < headerList.get(i).size(); y++) {
+                Cell cell = headerRow.createCell(y);
+                cell.setCellStyle(styles.get("header"));
+                String[] ss = StringUtils.split(headerList.get(i).get(y), COMMENT_SEPARATOR, 2);
+                if (ss.length == 2) {//代表该单元格带批注
+                    cell.setCellValue(ss[0]);
+                    Comment comment = this.sheet[i].createDrawingPatriarch().createCellComment(
+                            new XSSFClientAnchor(0, 0, 0, 0, (short) y, 1, (short) y + 2, 4));
+                    comment.setString(new XSSFRichTextString(ss[1]));
+                    cell.setCellComment(comment);
+                } else {
+                    cell.setCellValue(headerList.get(i).get(y));
+                }
+                sheet[i].autoSizeColumn(y);
+            }
+            //设置宽度
+            for (int s = 0; s < headerList.get(i).size(); s++) {
+                int[] customWidth;
+                if (custom.get("columnWidth") == null) {
+                    sheet[i].setColumnWidth(s, DEFAULT_WIDTH);
+                } else {
+                    customWidth = (int[]) custom.get("columnWidth");
+                    sheet[i].setColumnWidth(s, customWidth[s]);
+                }
+            }
+        }
+    }
+
+    /**
+     * 装配自定义参数
+     *
+     * @param custom
+     */
+    private void autoWireCustomParams(Map<String, Object> custom) {
+        float[] rowHeight;
+        int[] columnWidth;
+        if (custom.get("rowHeight") != null) {
+            rowHeight = (float[]) custom.get("rowHeight");
+            this.custom.put("titleHeight", rowHeight[0]);
+            this.custom.put("headerHeight", rowHeight[1]);
+            this.custom.put("dataHeight", rowHeight[2]);
+        } else {
+            this.custom.put("titleHeight", (float) DEFAULT_ROW_HEIGHT[0]);
+            this.custom.put("headerHeight", (float) DEFAULT_ROW_HEIGHT[1]);
+            this.custom.put("dataHeight", (float) DEFAULT_ROW_HEIGHT[2]);
+        }
+        if (custom.get("columnWidth") != null) {
+            columnWidth = (int[]) custom.get("columnWidth");
+            this.custom.put("columnWidth", columnWidth);
+        }
+
+    }
+
+    /**
+     * 创建表格样式
+     *
+     * @param wb 工作薄对象
+     * @return 样式列表
+     */
+    private Map<String, CellStyle> createStyles(Workbook wb) {
+        Map<String, CellStyle> styles = new HashMap<String, CellStyle>();
+
+        CellStyle style = wb.createCellStyle();
+        style.setAlignment(CellStyle.ALIGN_CENTER);
+        style.setVerticalAlignment(CellStyle.VERTICAL_CENTER);
+        Font titleFont = wb.createFont();
+        titleFont.setFontName("Arial");
+        titleFont.setFontHeightInPoints((short) 16);
+        titleFont.setBoldweight(Font.BOLDWEIGHT_BOLD);
+        style.setFont(titleFont);
+        styles.put("title", style);
+
+        style = wb.createCellStyle();
+        style.setVerticalAlignment(CellStyle.VERTICAL_CENTER);
+        style.setBorderRight(CellStyle.BORDER_THIN);
+        style.setRightBorderColor(IndexedColors.GREY_50_PERCENT.getIndex());
+        style.setBorderLeft(CellStyle.BORDER_THIN);
+        style.setLeftBorderColor(IndexedColors.GREY_50_PERCENT.getIndex());
+        style.setBorderTop(CellStyle.BORDER_THIN);
+        style.setTopBorderColor(IndexedColors.GREY_50_PERCENT.getIndex());
+        style.setBorderBottom(CellStyle.BORDER_THIN);
+        style.setBottomBorderColor(IndexedColors.GREY_50_PERCENT.getIndex());
+        Font dataFont = wb.createFont();
+        dataFont.setFontName("Arial");
+        dataFont.setFontHeightInPoints((short) 10);
+        style.setFont(dataFont);
+        styles.put("data", style);
+
+        style = wb.createCellStyle();
+        style.cloneStyleFrom(styles.get("data"));
+        style.setAlignment(CellStyle.ALIGN_LEFT);
+        styles.put("left", style);
+
+        style = wb.createCellStyle();
+        style.cloneStyleFrom(styles.get("data"));
+        style.setAlignment(CellStyle.ALIGN_CENTER);
+        styles.put("center", style);
+
+        style = wb.createCellStyle();
+        style.cloneStyleFrom(styles.get("data"));
+        style.setAlignment(CellStyle.ALIGN_RIGHT);
+        styles.put("right", style);
+
+        style = wb.createCellStyle();
+        style.cloneStyleFrom(styles.get("data"));
+        // style.setWrapText(true);
+        style.setAlignment(CellStyle.ALIGN_CENTER);
+        style.setFillForegroundColor(IndexedColors.GREY_50_PERCENT.getIndex());
+        style.setFillPattern(CellStyle.SOLID_FOREGROUND);
+        Font headerFont = wb.createFont();
+        headerFont.setFontName("Arial");
+        headerFont.setFontHeightInPoints((short) 10);
+        headerFont.setBoldweight(Font.BOLDWEIGHT_BOLD);
+        headerFont.setColor(IndexedColors.WHITE.getIndex());
+        style.setFont(headerFont);
+        styles.put("header", style);
+
+        return styles;
+    }
+
+    /**
+     * 添加sheet
+     *
+     * @param sheetName 名称
+     * @return
+     */
+    public Sheet addSheet(String sheetName) {
+        return wb.createSheet(sheetName);
+    }
+
+    /**
+     * 添加一行
+     *
+     * @return 行对象
+     */
+    public Row addRow(int i) {
+        return sheet[i].createRow(rownum[i]++);
+    }
+
+    /**
+     * 添加一个单元格
+     *
+     * @param row    添加的行
+     * @param column 添加列号
+     * @param val    添加值
+     * @return 单元格对象
+     */
+    public Cell addCell(Row row, int column, Object val) {
+        return this.addCell(row, column, val, 0, Class.class);
+    }
+
+    /**
+     * 添加一个单元格
+     *
+     * @param row    添加的行
+     * @param column 添加列号
+     * @param val    添加值
+     * @param align  对齐方式（1：靠左；2：居中；3：靠右）
+     * @return 单元格对象
+     */
+    public Cell addCell(Row row, int column, Object val, int align, Class<?> fieldType) {
+        Cell cell = row.createCell(column);
+        CellStyle style = styles.get("data" + (align >= 1 && align <= 3 ? align : ""));
+        DataFormat format = wb.createDataFormat();
+        try {
+            if (val == null) {
+                cell.setCellValue("");
+            } else if (val instanceof String) {
+                cell.setCellValue((String) val);
+            } else if (val instanceof Integer) {
+                cell.setCellValue((Integer) val);
+                style = styles.get("right");
+            } else if (val instanceof Long) {
+                cell.setCellValue((Long) val);
+                style = styles.get("right");
+            } else if (val instanceof Double) {
+                cell.setCellValue((Double) val);
+                style = styles.get("right");
+            } else if (val instanceof Float) {
+                cell.setCellValue((Float) val);
+                style = styles.get("right");
+            } else if (val instanceof Date) {
+                style.setDataFormat(format.getFormat("yyyy-MM-dd"));
+                cell.setCellValue((Date) val);
+            } else {
+                if (fieldType != Class.class) {
+                    cell.setCellValue((String) fieldType.getMethod("setValue", Object.class).invoke(null, val));
+                } else {
+                    cell.setCellValue((String) Class
+                            .forName(
+                                    this.getClass()
+                                            .getName()
+                                            .replaceAll(this.getClass().getSimpleName(),
+                                                    "fieldtype." + val.getClass().getSimpleName() + "Type"))
+                            .getMethod("setValue", Object.class).invoke(null, val));
+                }
+            }
+        } catch (Exception ex) {
+            cell.setCellValue(val.toString());
+        }
+        //将所有单元格格式换成文本类型
+        style.setDataFormat(format.getFormat("@"));
+        cell.setCellStyle(style);
+        return cell;
+    }
+
+    /**
+     * 输出数据流
+     *
+     * @param os 输出数据流
+     */
+    public ExportExcel write(OutputStream os) throws IOException {
+        wb.write(os);
+        return this;
+    }
+
+    /**
+     * 输出到客户端
+     *
+     * @param fileName 输出文件名
+     */
+    public ExportExcel write(HttpServletResponse response, String fileName) throws IOException {
+        response.reset();
+        response.setContentType("application/octet-stream; charset=utf-8");
+        // response.setHeader("Content-Disposition",
+        // "attachment; filename="+Encodes.urlEncode(fileName));
+        response.setHeader("Content-Disposition", "attachment; filename="
+                + new String((fileName).getBytes("gbk"), "iso8859-1"));
+        write(response.getOutputStream());
+        return this;
+    }
+
+    /**
+     * 输出到文件
+     *
+     * @param name 输出文件名
+     */
+    public ExportExcel writeFile(String name) throws FileNotFoundException, IOException {
+        FileOutputStream os = new FileOutputStream(name);
+        this.write(os);
+        return this;
+    }
+
+    /**
+     * 清理临时文件
+     */
+    public ExportExcel dispose() {
+        wb.dispose();
+        return this;
+    }
+
+    /**
+     * 添加导出说明Sheet
+     *
+     * @param sheetName   名称|标题
+     * @param docHeaders  头部内容
+     * @param instruction 说明信息
+     */
+    public void addInstruction(String sheetName, String[] docHeaders, String[][] instruction) {
+
+        // 添加sheet
+        Sheet sheet = addSheet(sheetName);
+        // 添加title
+        Row titleRow = sheet.createRow(0);
+        // 设置行高
+        titleRow.setHeightInPoints(30);
+        Cell titleCell = titleRow.createCell(0);
+        titleCell.setCellStyle(styles.get("title"));
+        titleCell.setCellValue(sheetName);
+        sheet.addMergedRegion(new CellRangeAddress(titleRow.getRowNum(), titleRow.getRowNum(), titleRow
+                .getRowNum(), 2));
+        // 添加header
+        Row headerRow = sheet.createRow(1);
+        headerRow.setHeightInPoints(23);
+        for (int y = 0; y < docHeaders.length; y++) {
+            Cell cell = headerRow.createCell(y);
+            cell.setCellStyle(styles.get("header"));
+            cell.setCellValue(docHeaders[y]);
+            sheet.autoSizeColumn(y);
+        }
+        if (instruction != null) {
+            // 填充数据
+            List<String[]> ins = Arrays.asList(instruction);
+            //如果列的数量大于3
+            if (ins.size() > 3) {
+                for (int k = 3; k < ins.get(0).length; k++) {
+                    sheet.setColumnWidth(k, 5000);
+                }
+            }
+            for (int i = 0; i < ins.size(); i++) {
+                Row row = sheet.createRow(i + 2);
+                row.setHeightInPoints((Float) custom.get("dataHeight"));
+                for (int j = 0; j < ins.get(i).length; j++) {
+                    Cell cell = this.addCell(row, j, ins.get(i)[j]);
+                    cell.setCellStyle(styles.get("center"));
+                }
+            }
+        }
+        // 设置默认的列宽
+        sheet.setColumnWidth(0, 5000);
+        sheet.setColumnWidth(1, 12000);
+        sheet.setColumnWidth(2, 5000);
+    }
+}

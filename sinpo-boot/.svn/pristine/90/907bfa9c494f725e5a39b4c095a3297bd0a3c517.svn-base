@@ -1,0 +1,45 @@
+import com.rabbitmq.client.*;
+import com.sinpo.framework.rabbitmq.RabbitMQSender;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.test.context.junit4.SpringRunner;
+
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.TimeoutException;
+
+/**
+ * @author WangDi
+ * @version 1.0
+ * @date 2018/7/26 0026
+ */
+
+@RunWith(SpringRunner.class)
+@SpringBootTest(classes = {SinpoTest.class})
+@ComponentScan("com.sinpo")
+public class SinpoTest {
+
+    //RabbitMQ不容许声明2个相同名称、配置不同的Queue
+
+    private final static String QUEUE_NAME = "hello";
+
+    private static final String TASK_QUEUE_NAME = "task_queue";
+
+//    @Autowired
+//    RabbitMQSender rabbitMQSender;
+
+    @Test
+    public void test5(){
+//        Map map = new HashMap();
+//        map.put("noticeTitle", "公告标题" + new Date().toLocaleString());
+//        map.put("noticeType", "2");
+//        map.put("noticeContent", "由消息队列实现的公告插入");
+//        map.put("status", "0");
+//        rabbitMQSender.send(map);
+        System.out.println("=========================【发送消息】");
+    }
+
+}

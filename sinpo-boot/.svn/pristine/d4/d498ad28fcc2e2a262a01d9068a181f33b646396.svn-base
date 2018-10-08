@@ -1,0 +1,217 @@
+package com.sinpo.project.work.clock.domain;
+
+
+import com.sinpo.framework.web.domain.BaseEntity;
+
+import java.util.Date;
+
+/**
+ * 打卡记录表 wk_clock_record
+ * 
+ * @author admin
+ * @date 2018-07-26
+ */
+public class ClockRecord extends BaseEntity
+{
+	private static final long serialVersionUID = 1L;
+	
+	/** 打卡记录表 */
+	private String crId;
+	/** 用户id */
+	private Integer userId;
+	/** 开始时间 */
+	private Date begintime;
+	/** 结束时间 */
+	private Date endtime;
+	/** 是否为法定假日 0：否 1：是 */
+	private String legalHoliday;
+	/** 创建者 */
+	private String createBy;
+	/** 创建时间 */
+	private Date createTime;
+	/** 更新者 */
+	private String updateBy;
+	/** 更新时间 */
+	private Date updateTime;
+	/** 备注 */
+	private String remark;
+	/** 状态（0有效 1无效） */
+	private String status;
+
+	/**
+	 * 设置：打卡记录表
+	 */
+	public void setCrId(String crId) 
+	{
+		this.crId = crId;
+	}
+	
+	/**
+	 * 获取：打卡记录表
+	 */
+	public String getCrId() 
+	{
+		return crId;
+	}
+	
+	/**
+	 * 设置：用户id
+	 */
+	public void setUserId(Integer userId) 
+	{
+		this.userId = userId;
+	}
+	
+	/**
+	 * 获取：用户id
+	 */
+	public Integer getUserId() 
+	{
+		return userId;
+	}
+	
+	/**
+	 * 设置：开始时间
+	 */
+	public void setBegintime(Date begintime) 
+	{
+		this.begintime = begintime;
+	}
+	
+	/**
+	 * 获取：开始时间
+	 */
+	public Date getBegintime() 
+	{
+		return begintime;
+	}
+	
+	/**
+	 * 设置：结束时间
+	 */
+	public void setEndtime(Date endtime) 
+	{
+		this.endtime = endtime;
+	}
+	
+	/**
+	 * 获取：结束时间
+	 */
+	public Date getEndtime() 
+	{
+		return endtime;
+	}
+	
+	/**
+	 * 设置：是否为法定假日 0：否 1：是
+	 */
+	public void setLegalHoliday(String legalHoliday) 
+	{
+		this.legalHoliday = legalHoliday;
+	}
+	
+	/**
+	 * 获取：是否为法定假日 0：否 1：是
+	 */
+	public String getLegalHoliday() 
+	{
+		return legalHoliday;
+	}
+	
+	/**
+	 * 设置：创建者
+	 */
+	public void setCreateBy(String createBy) 
+	{
+		this.createBy = createBy;
+	}
+	
+	/**
+	 * 获取：创建者
+	 */
+	public String getCreateBy() 
+	{
+		return createBy;
+	}
+	
+	/**
+	 * 设置：创建时间
+	 */
+	public void setCreateTime(Date createTime) 
+	{
+		this.createTime = createTime;
+	}
+	
+	/**
+	 * 获取：创建时间
+	 */
+	public Date getCreateTime() 
+	{
+		return createTime;
+	}
+	
+	/**
+	 * 设置：更新者
+	 */
+	public void setUpdateBy(String updateBy) 
+	{
+		this.updateBy = updateBy;
+	}
+	
+	/**
+	 * 获取：更新者
+	 */
+	public String getUpdateBy() 
+	{
+		return updateBy;
+	}
+	
+	/**
+	 * 设置：更新时间
+	 */
+	public void setUpdateTime(Date updateTime) 
+	{
+		this.updateTime = updateTime;
+	}
+	
+	/**
+	 * 获取：更新时间
+	 */
+	public Date getUpdateTime() 
+	{
+		return updateTime;
+	}
+	
+	/**
+	 * 设置：备注
+	 */
+	public void setRemark(String remark) 
+	{
+		this.remark = remark;
+	}
+	
+	/**
+	 * 获取：备注
+	 */
+	public String getRemark() 
+	{
+		return remark;
+	}
+	
+	/**
+	 * 设置：状态（0有效 1无效）
+	 */
+	public void setStatus(String status) 
+	{
+		this.status = status;
+	}
+	
+	/**
+	 * 获取：状态（0有效 1无效）
+	 */
+	public String getStatus() 
+	{
+		return status;
+	}
+	
+}

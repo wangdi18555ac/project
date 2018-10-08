@@ -1,0 +1,119 @@
+package com.sinpo.project.work.clock.controller;
+
+import java.util.List;
+
+import com.sinpo.project.work.clock.domain.ClockRecord;
+import com.sinpo.project.work.clock.service.IClockRecordService;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.ModelMap;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import com.sinpo.framework.aspectj.lang.annotation.Log;
+import com.sinpo.framework.aspectj.lang.constant.BusinessType;
+import com.sinpo.framework.web.controller.BaseController;
+import com.sinpo.framework.web.page.TableDataInfo;
+import com.sinpo.framework.web.domain.AjaxResult;
+
+/**
+ * 打卡记录 信息操作处理
+ * 
+ * @author admin
+ * @date 2018-07-26
+ */
+@Controller
+@RequestMapping("/work/clockRecord")
+public class ClockRecordController extends BaseController
+{
+    private String prefix = "work/clock";
+	
+	@Autowired
+	private IClockRecordService clockRecordService;
+	
+	@RequiresPermissions("work:clockRecord:view")
+	@GetMapping()
+	public String clockRecord()
+	{
+	    return prefix + "/clockRecord";
+	}
+
+	@RequiresPermissions("work:clockRecord:view")
+	@GetMapping("/clock")
+	public String clock() {
+		return prefix + "/clock";
+	}
+	
+	/**
+	 * 查询打卡记录列表
+	 */
+	@RequiresPermissions("work:clockRecord:list")
+	@PostMapping("/list")
+	@ResponseBody
+	public TableDataInfo list(ClockRecord clockRecord)
+	{
+		startPage();
+        List<ClockRecord> list = clockRecordService.selectClockRecordList(clockRecord);
+		return getDataTable(list);
+	}
+	
+	/**
+	 * 新增打卡记录
+	 */
+	@GetMapping("/add")
+	public String add()
+	{
+	    return prefix + "/add";
+	}
+	
+	/**
+	 * 新增保存打卡记录
+	 */
+	@RequiresPermissions("work:clockRecord:add")
+	@Log(title = "打卡记录", action = BusinessType.INSERT)
+	@PostMapping("/add")
+	@ResponseBody
+	public AjaxResult addSave(ClockRecord clockRecord)
+	{		
+		return toAjax(clockRecordService.insertClockRecord(clockRecord));
+	}
+
+	/**
+	 * 修改打卡记录
+	 */
+	@GetMapping("/edit/{crId}")
+	public String edit(@PathVariable("crId") String crId, ModelMap mmap)
+	{
+		ClockRecord clockRecord = clockRecordService.selectClockRecordById(crId);
+		mmap.put("clockRecord", clockRecord);
+	    return prefix + "/edit";
+	}
+	
+	/**
+	 * 修改保存打卡记录
+	 */
+	@RequiresPermissions("work:clockRecord:edit")
+	@Log(title = "打卡记录", action = BusinessType.UPDATE)
+	@PostMapping("/edit")
+	@ResponseBody
+	public AjaxResult editSave(ClockRecord clockRecord)
+	{		
+		return toAjax(clockRecordService.updateClockRecord(clockRecord));
+	}
+	
+	/**
+	 * 删除打卡记录
+	 */
+	@RequiresPermissions("work:clockRecord:remove")
+	@Log(title = "打卡记录", action = BusinessType.DELETE)
+	@PostMapping( "/remove")
+	@ResponseBody
+	public AjaxResult remove(String ids)
+	{		
+		return toAjax(clockRecordService.deleteClockRecordByIds(ids));
+	}
+	
+}

@@ -1,0 +1,6 @@
+package com.sinpo.framework.rabbitmq;
+
+public interface RabbitMQQueues {
+
+    String ACTIVITY = "MQ_activity";
+}

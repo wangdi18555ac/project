@@ -1,0 +1,34 @@
+package com.sinpo.common.excel;
+
+/**
+ * Excel后缀类型
+ *
+ * @author WangDi
+ * @version 1.0
+ * @date 2018/7/18
+ */
+public enum ExcelSuffix {
+
+    XLS(".xls"),XLSX(".xlsx");
+
+    private ExcelSuffix(String suffix){
+        this.type = suffix;
+    }
+
+    private String type;
+
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+
+    @Override
+    public String toString() {
+        return this.type;
+    }
+}

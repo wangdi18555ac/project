@@ -1,0 +1,32 @@
+package com.sinpo.common.excel.annotation;
+
+import java.lang.annotation.*;
+
+/**
+ * Excel导出说明
+ *
+ * @author  WangDi
+ * @date    2018/7/18
+ * @version 1.0
+ */
+@Target({ElementType.TYPE})
+@Retention(RetentionPolicy.RUNTIME)
+@Inherited
+public @interface ExcelExportDoc {
+
+    /*
+     * 【是否启动说明文档功能】
+     */
+    boolean enableDoc() default true;
+
+    /*
+     * 【标题内容】
+     */
+    String title() default "导出数据说明";
+
+    /*
+     * 【表格头部信息】
+     */
+    String[] headers() default {"字段","说明","是否必须"};
+
+}

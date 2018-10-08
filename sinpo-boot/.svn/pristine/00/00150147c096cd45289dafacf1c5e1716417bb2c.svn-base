@@ -1,0 +1,63 @@
+package com.sinpo.project.work.clock.mapper;
+
+import com.sinpo.project.work.clock.domain.ClockRecord;
+
+import java.util.List;
+
+/**
+ * 打卡记录 数据层
+ * 
+ * @author admin
+ * @date 2018-07-26
+ */
+public interface ClockRecordMapper 
+{
+	/**
+     * 查询打卡记录信息
+     * 
+     * @param crId 打卡记录ID
+     * @return 打卡记录信息
+     */
+	public ClockRecord selectClockRecordById(String crId);
+	
+	/**
+     * 查询打卡记录列表
+     * 
+     * @param clockRecord 打卡记录信息
+     * @return 打卡记录集合
+     */
+	public List<ClockRecord> selectClockRecordList(ClockRecord clockRecord);
+	
+	/**
+     * 新增打卡记录
+     * 
+     * @param clockRecord 打卡记录信息
+     * @return 结果
+     */
+	public int insertClockRecord(ClockRecord clockRecord);
+	
+	/**
+     * 修改打卡记录
+     * 
+     * @param clockRecord 打卡记录信息
+     * @return 结果
+     */
+	public int updateClockRecord(ClockRecord clockRecord);
+	
+	/**
+     * 删除打卡记录
+     * 
+     * @param crId 打卡记录ID
+     * @return 结果
+     */
+	public int deleteClockRecordById(String crId);
+	
+	/**
+     * 批量删除打卡记录
+     * 
+     * @param crIds 需要删除的数据ID
+     * @return 结果
+     */
+	public int deleteClockRecordByIds(String[] crIds);
+	
+}

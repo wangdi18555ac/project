@@ -1,0 +1,15 @@
+package com.sinpo.common.excel.exception;
+
+/**
+ * Excel异常类
+ *
+ * @author WangDi
+ * @date   2018/7/18
+ *
+ */
+public class ExcelException extends Exception{
+
+    public ExcelException(String message) {
+        super(message);
+    }
+}

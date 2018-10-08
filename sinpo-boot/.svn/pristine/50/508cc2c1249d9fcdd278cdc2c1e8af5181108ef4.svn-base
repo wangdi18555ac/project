@@ -1,0 +1,21 @@
+package com.sinpo.framework.config;
+
+import com.sinpo.framework.rabbitmq.RabbitMQQueues;
+import org.springframework.amqp.core.Queue;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+/**
+ * @author WangDi
+ * @version 1.0
+ * @date 2018/7/30 0030
+ */
+//@Configuration
+public class RabbitMQConfig {
+
+//    @Bean
+    public Queue queue() {
+        return new Queue(RabbitMQQueues.ACTIVITY);
+    }
+
+}

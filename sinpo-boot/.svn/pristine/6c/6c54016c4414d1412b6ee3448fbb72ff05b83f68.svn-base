@@ -1,0 +1,35 @@
+package com.sinpo.common.excel.annotation;
+
+
+import java.lang.annotation.*;
+
+/**
+ * Excel导入模型
+ *
+ * @author  WangDi
+ * @version 1.0
+ * @date    2018/7/18
+ */
+@Target({ElementType.TYPE})
+@Retention(RetentionPolicy.RUNTIME)
+@Inherited
+public @interface ExcelImportModel {
+
+    /*
+     * 【数据类型】
+     */
+    Class<?> type() default ExcelImportModel.class;
+
+    /*
+     * 【表格头部信息】
+     * 注：严格按照顺序设置
+     */
+    String[] headers();
+
+    /*
+     * 【属性映射关系】
+     * 注：按照(列)顺序完成相应属性的装配
+     * 数组长度须与表格数据列数相同
+     */
+    String[] attributeMapping();
+}

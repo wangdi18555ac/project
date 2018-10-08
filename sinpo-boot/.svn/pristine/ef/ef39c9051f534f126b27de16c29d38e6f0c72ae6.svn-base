@@ -1,0 +1,178 @@
+package com.sinpo.common.excel;
+
+import com.sinpo.common.excel.model.TestModel;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import java.io.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+
+/**
+ * 导入Excel文件数据
+ *
+ * @author WangDi
+ * @version 1.0
+ * @date 2018/7/19
+ */
+public class ImportExcel {
+
+    /**
+     * 工作薄对象
+     */
+    private Workbook wb;
+
+    /**
+     * 工作表对象
+     */
+    private Sheet sheet;
+
+    /**
+     * 标题行号
+     */
+    private int headerNum;
+
+
+    public ImportExcel(String fileName, InputStream is, int headerNum, int sheetIndex)
+            throws IOException {
+        if (StringUtils.isBlank(fileName)) {
+            throw new RuntimeException("导入文档为空!");
+        } else if (fileName.toLowerCase().endsWith("xls")) {
+            this.wb = new HSSFWorkbook(is);
+        } else if (fileName.toLowerCase().endsWith("xlsx")) {
+            this.wb = new XSSFWorkbook(is);
+        } else {
+            throw new RuntimeException("文档格式不正确!");
+        }
+        if (this.wb.getNumberOfSheets() < sheetIndex) {
+            throw new RuntimeException("文档中没有工作表!");
+        }
+        this.sheet = this.wb.getSheetAt(sheetIndex);
+        this.headerNum = headerNum;
+    }
+
+    /**
+     * 获取行对象
+     *
+     * @param rownum
+     * @return
+     */
+    public Row getRow(int rownum) {
+        return this.sheet.getRow(rownum);
+    }
+
+    /**
+     * 获取数据行号
+     *
+     * @return
+     */
+    public int getDataRowNum() {
+        return headerNum + 1;
+    }
+
+    /**
+     * 获取最后一个数据行号
+     *
+     * @return
+     */
+    public int getLastDataRowNum() {
+        return this.sheet.getLastRowNum() + headerNum;
+    }
+
+    /**
+     * 获取最后一个列号
+     *
+     * @return
+     */
+    public int getLastCellNum() {
+        return this.getRow(headerNum).getLastCellNum();
+    }
+
+    /**
+     * 获取单元格值
+     *
+     * @param row    获取的行
+     * @param column 获取单元格列号
+     * @return 单元格值
+     */
+    public Object getCellValue(Row row, int column) {
+        Object val = "";
+        try {
+            Cell cell = row.getCell(column);
+            if (cell != null) {
+                if (cell.getCellType() == Cell.CELL_TYPE_NUMERIC) {
+                    val = cell.getNumericCellValue();
+                } else if (cell.getCellType() == Cell.CELL_TYPE_STRING) {
+                    val = cell.getStringCellValue();
+                } else if (cell.getCellType() == Cell.CELL_TYPE_FORMULA) {
+                    val = cell.getCellFormula();
+                } else if (cell.getCellType() == Cell.CELL_TYPE_BOOLEAN) {
+                    val = cell.getBooleanCellValue();
+                } else if (cell.getCellType() == Cell.CELL_TYPE_ERROR) {
+                    val = cell.getErrorCellValue();
+                }
+            }
+        } catch (Exception e) {
+            return val;
+        }
+        return val;
+    }
+
+    public Workbook getWb() {
+        return wb;
+    }
+
+    public static Boolean isTemplateError(Map<String, Object> result) {
+        return (Boolean) result.get(ExcelKey.EXCEL_IMPORT_TEMPLATE_ERROR);
+    }
+
+    public static Map<String, Object> getErrorMap(Map<String, Object> result) {
+        return (Map<String, Object>) result.get(ExcelKey.EXCEL_IMPORT_ERROR);
+    }
+
+    public static Boolean hasError(Map<String, Object> result) {
+        return !getErrorMap(result).isEmpty();
+    }
+
+    public static void addErrorList(Map<String, Object> result, List<String> errors) {
+        ImportExcel.getErrorMap(result).put(ExcelKey.EXCEL_IMPORT_ERROR_DESCRIPTION, errors);
+    }
+
+    public static Workbook getWorkBook(Map<String, Object> result) {
+        return (Workbook) result.get(ExcelKey.EXCEL_IMPORT_WORKBOOK);
+    }
+
+    public static List<Map<String, Object>> getData(Map<String, Object> result) {
+        return (List<Map<String, Object>>) result.get(ExcelKey.EXCEL_IMPORT_DATA);
+    }
+
+
+    /**
+     * 导入测试
+     */
+    public static void main(String[] args) throws Throwable {
+
+        InputStream is = new FileInputStream(new File("C:\\Users\\Administrator\\Downloads\\第二学期考试成绩.xlsx"));
+
+        Map<String, Object> x = ExcelExecutor.read(TestModel.class, is, 0, ExcelSuffix.XLSX);
+
+        List<String> list = new ArrayList<>();
+
+        list.add("数值错误");
+
+        list.add("对应关系错误");
+
+        if (ImportExcel.isTemplateError(x)) {
+            System.out.println("模板错误");
+        }
+
+        ImportExcel.addErrorList(x, list);
+
+        ExcelExecutor.sendExcelErrorResponse(new FileOutputStream(new File("C:\\Users\\Administrator\\Downloads\\output.xlsx")),
+                x, ExcelSuffix.XLSX);
+    }
+}

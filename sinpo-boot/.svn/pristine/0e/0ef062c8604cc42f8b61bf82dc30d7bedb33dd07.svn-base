@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sinpo.project.work.clock.mapper.ClockRecordMapper">
+    
+    <resultMap type="ClockRecord" id="ClockRecordResult">
+        <result property="crId"    column="cr_id"    />
+        <result property="userId"    column="user_id"    />
+        <result property="begintime"    column="begintime"    />
+        <result property="endtime"    column="endtime"    />
+        <result property="legalHoliday"    column="legal_holiday"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="remark"    column="remark"    />
+        <result property="status"    column="status"    />
+    </resultMap>
+	
+	<sql id="selectClockRecordVo">
+        select cr_id, user_id, begintime, endtime, legal_holiday, create_by, create_time, update_by, update_time, remark, status from wk_clock_record
+    </sql>
+	
+    <select id="selectClockRecordList" parameterType="ClockRecord" resultMap="ClockRecordResult">
+        <include refid="selectClockRecordVo"/>
+        <where>  
+            <if test="crId != null and crId != ''"> and cr_id = #{crId}</if>
+             <if test="userId != null and userId != ''"> and user_id = #{userId}</if>
+             <if test="begintime != null and begintime != ''"> and begintime = #{begintime}</if>
+             <if test="endtime != null and endtime != ''"> and endtime = #{endtime}</if>
+             <if test="legalHoliday != null and legalHoliday != ''"> and legal_holiday = #{legalHoliday}</if>
+             <if test="createBy != null and createBy != ''"> and create_by = #{createBy}</if>
+             <if test="createTime != null and createTime != ''"> and create_time = #{createTime}</if>
+             <if test="updateBy != null and updateBy != ''"> and update_by = #{updateBy}</if>
+             <if test="updateTime != null and updateTime != ''"> and update_time = #{updateTime}</if>
+             <if test="remark != null and remark != ''"> and remark = #{remark}</if>
+             <if test="status != null and status != ''"> and status = #{status}</if>
+         </where>
+    </select>
+    
+    <select id="selectClockRecordById" parameterType="String" resultMap="ClockRecordResult">
+        <include refid="selectClockRecordVo"/>
+        where cr_id = #{crId}
+    </select>
+        
+    <insert id="insertClockRecord" parameterType="ClockRecord">
+        insert into wk_clock_record
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			cr_id,
+			user_id,
+			begintime,
+			endtime,
+			legal_holiday,
+			create_by,
+			create_time,
+			update_by,
+			update_time,
+			remark,
+			status
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+			#{crId},
+			#{userId},
+			#{begintime},
+			#{endtime},
+			#{legalHoliday},
+			#{createBy},
+			sysdate(),
+			#{updateBy},
+            sysdate(),
+			#{remark},
+			'0'
+         </trim>
+    </insert>
+	 
+    <update id="updateClockRecord" parameterType="ClockRecord">
+        update wk_clock_record
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="userId != null  ">user_id = #{userId},</if>
+            <if test="begintime != null  ">begintime = #{begintime},</if>
+            <if test="endtime != null  ">endtime = #{endtime},</if>
+            <if test="legalHoliday != null  and legalHoliday != ''  ">legal_holiday = #{legalHoliday},</if>
+            <if test="createBy != null  and createBy != ''  ">create_by = #{createBy},</if>
+            <if test="createTime != null  ">create_time = #{createTime},</if>
+            <if test="updateBy != null  and updateBy != ''  ">update_by = #{updateBy},</if>
+            <if test="updateTime != null  ">update_time = #{updateTime},</if>
+            <if test="remark != null  and remark != ''  ">remark = #{remark},</if>
+            <if test="status != null  and status != ''  ">status = #{status},</if>
+        </trim>
+        where cr_id = #{crId}
+    </update>
+
+	<delete id="deleteClockRecordById" parameterType="String">
+        delete from wk_clock_record where cr_id = #{crId}
+    </delete>
+	
+    <delete id="deleteClockRecordByIds" parameterType="String">
+        delete from wk_clock_record where cr_id in 
+        <foreach item="crId" collection="array" open="(" separator="," close=")">
+            #{crId}
+        </foreach>
+    </delete>
+    
+</mapper>

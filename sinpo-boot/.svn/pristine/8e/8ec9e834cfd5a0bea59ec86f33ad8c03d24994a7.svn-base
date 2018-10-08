@@ -1,0 +1,26 @@
+package com.sinpo;
+
+import org.mybatis.spring.annotation.MapperScan;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
+
+/**
+ * 启动程序
+ * 
+ * @author admin
+ */
+
+@SpringBootApplication
+@EnableTransactionManagement
+@MapperScan("com.sinpo.project.*.*.mapper")
+public class BootstrapApplication{
+    /**
+     * SpringBoot程序入口
+     * @param args
+     */
+    public static void main(String[] args) {
+        SpringApplication.run(BootstrapApplication.class, args);
+    }
+}

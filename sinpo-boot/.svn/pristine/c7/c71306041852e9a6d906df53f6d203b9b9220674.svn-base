@@ -1,0 +1,63 @@
+package com.sinpo.common.excel.annotation;
+
+
+import java.lang.annotation.*;
+
+/**
+ * Excel导出模型
+ *
+ * @author WangDi
+ * @version 1.0
+ * @date 2018/7/18
+ */
+@Target({ElementType.TYPE})
+@Retention(RetentionPolicy.RUNTIME)
+@Inherited
+public @interface ExcelExportModel {
+
+    /*
+     * 【标题内容】
+     */
+    String title() default "导出数据列表";
+
+    /*
+     * 【文件名】
+     */
+    String fileName() default "导出数据";
+
+    /*
+     * 【表格头部信息】
+     * 注：严格按照顺序设置
+     * 如果要在某个header单元格增加批注
+     * 可在header内容结尾处加上 '@@' + 批注内容 即可
+     * 例:"第一列头信息@@第一列头信息的批注"
+     * "第一列头信息"则为header信息
+     * "第一列头信息的批注"则为批注信息
+     */
+    String[] headers();
+
+    /*
+     * 【属性映射关系】
+     * 注：按照(列)顺序完成相应属性的装配
+     * 数组长度须与表格数据列数相同
+     */
+    String[] attributeMapping();
+
+    /*
+     * 【数据类型】
+     */
+    Class<?> type() default ExcelImportModel.class;
+
+    /*
+     * 【行高】
+     * 分别代表 标题行高,头部行高,数据行高
+     * 注：长度等于3时生效
+     */
+    float[] rowHeight() default {};
+
+    /*
+     * 【列宽】
+     * 注：一旦设置该属性则所有列均采用自定义方案
+     */
+    int[] columnWidth() default {};
+}

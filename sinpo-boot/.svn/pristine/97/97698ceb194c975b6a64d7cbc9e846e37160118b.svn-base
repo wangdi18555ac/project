@@ -1,0 +1,197 @@
+package com.sinpo.framework.web.controller;
+
+import java.text.SimpleDateFormat;
+import java.util.*;
+
+import org.springframework.beans.propertyeditors.CustomDateEditor;
+import org.springframework.web.bind.WebDataBinder;
+import org.springframework.web.bind.annotation.InitBinder;
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
+import com.sinpo.common.utils.StringUtils;
+import com.sinpo.common.utils.security.ShiroUtils;
+import com.sinpo.framework.web.domain.AjaxResult;
+import com.sinpo.framework.web.page.PageDomain;
+import com.sinpo.framework.web.page.TableDataInfo;
+import com.sinpo.framework.web.page.TableSupport;
+import com.sinpo.project.system.user.domain.User;
+
+import javax.servlet.http.HttpServletRequest;
+
+/**
+ * web层通用数据处理
+ * 
+ * @author admin
+ */
+public class BaseController
+{
+    /**
+     * 将前台传递过来的日期格式的字符串，自动转化为Date类型
+     */
+    @InitBinder
+    public void initBinder(WebDataBinder binder)
+    {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        dateFormat.setLenient(false);
+        binder.registerCustomEditor(Date.class, new CustomDateEditor(dateFormat, true));
+    }
+
+    /**
+     * 设置请求分页数据
+     */
+    protected void startPage()
+    {
+        PageDomain pageDomain = TableSupport.buildPageRequest();
+        Integer pageNum = pageDomain.getPageNum();
+        Integer pageSize = pageDomain.getPageSize();
+        if (StringUtils.isNotNull(pageNum) && StringUtils.isNotNull(pageSize))
+        {
+            String orderBy = pageDomain.getOrderBy();
+            PageHelper.startPage(pageNum, pageSize, orderBy);
+        }
+    }
+
+    /**
+     * 响应请求分页数据
+     */
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    protected TableDataInfo getDataTable(List<?> list)
+    {
+        TableDataInfo rspData = new TableDataInfo();
+        rspData.setRows(list);
+        rspData.setTotal(new PageInfo(list).getTotal());
+        return rspData;
+    }
+
+    /**
+     * 响应返回结果
+     * 
+     * @param rows 影响行数
+     * @return 操作结果
+     */
+    protected AjaxResult toAjax(int rows)
+    {
+        return rows > 0 ? success() : error();
+    }
+
+    /**
+     * 返回成功
+     */
+    public AjaxResult success()
+    {
+        return AjaxResult.success();
+    }
+
+    /**
+     * 返回失败消息
+     */
+    public AjaxResult error()
+    {
+        return AjaxResult.error();
+    }
+
+    /**
+     * 返回成功消息
+     */
+    public AjaxResult success(String message)
+    {
+        return AjaxResult.success(message);
+    }
+
+    /**
+     * 返回失败消息
+     */
+    public AjaxResult error(String message)
+    {
+        return AjaxResult.error(message);
+    }
+
+    /**
+     * 返回错误码消息
+     */
+    public AjaxResult error(int code, String message)
+    {
+        return AjaxResult.error(code, message);
+    }
+
+    /**
+     * 判断参数是否为空
+     * 可判断的类型
+     * 字符串,集合,数组,map
+     *
+     * @param obj
+     * @return
+     */
+    public boolean isEmpty(Object obj) {
+        if (obj == null) return true;
+        if (obj instanceof String) {
+            if (org.apache.commons.lang.StringUtils.isEmpty((String) obj)) return true;
+        } else if (obj.getClass().isArray()) {
+            if (((Object[]) obj).length == 0) return true;
+        } else if (obj instanceof Collection) {
+            if (((Collection) obj).size() == 0) return true;
+        } else if (obj instanceof Map) {
+            if (((Map) obj).isEmpty()) return true;
+        }
+        return false;
+    }
+
+    /**
+     * 生成随机UUID
+     *
+     * @return
+     */
+    public String UUID() {
+        return UUID.randomUUID().toString();
+    }
+
+    /**
+     * 生成随机数字id
+     *
+     * @param end 截取的下标
+     * @return
+     */
+    public String longId(int end) {
+        if (end > 19) end = 19;
+        return String.valueOf(new Random().nextLong()).replace("-", "").substring(0, end);
+    }
+
+    /**
+     * 获取参数
+     *
+     * @param req
+     * @param name
+     * @return
+     */
+    public String param(HttpServletRequest req, String name) {
+        return req.getParameter(name);
+    }
+
+    /**
+     * 页面跳转
+     */
+    public String redirect(String url)
+    {
+        return StringUtils.format("redirect:{}", url);
+    }
+
+    public User getUser()
+    {
+        return ShiroUtils.getUser();
+    }
+
+    public void setUser(User user)
+    {
+        ShiroUtils.setUser(user);
+    }
+
+    public Long getUserId()
+    {
+        return getUser().getUserId();
+    }
+
+    public String getLoginName()
+    {
+        return getUser().getLoginName();
+    }
+}
